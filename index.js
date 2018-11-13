@@ -74,9 +74,9 @@ exports.middleware = ({ dispatch, getState }) => next => action => {
       next(action);
       break;
     case SESSION_SET_XTERM_TITLE:
-      cacheXtermTitle[action.uid] = action.title || defaultTitle;
+      cacheXtermTitle[action.uid] = action.title.trim() || defaultTitle;
       if (prefixTitleInfo[action.uid]) {
-        action.title = `${prefixTitleInfo[action.uid]}: ${action.title}`;
+        action.title = `${prefixTitleInfo[action.uid]}: ${cacheXtermTitle[action.uid]}`;
       }
       next(action);
       break;
