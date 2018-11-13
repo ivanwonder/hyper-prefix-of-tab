@@ -259,10 +259,11 @@ exports.decorateHyper = (Component, { React }) => {
     }
 
     render() {
+      const customChildren = Array.from(this.props.customChildren || []).concat(this.ModalView());
       return React.createElement(
         Component,
         Object.assign({}, this.props, {
-          customChildren: this.ModalView()
+          customChildren
         })
       );
     }
