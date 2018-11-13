@@ -1,0 +1,14 @@
+<html>
+  <body>
+    <input placeholder="" id="prefix-value" /> <button id="save">save</button>
+  </body>
+  <script>
+    const { ipcRenderer } = require("electron");
+    document.querySelector("#save").onclick = function() {
+      ipcRenderer.send(
+        "prefixOfTab",
+        document.querySelector("#prefix-value").value
+      );
+    };
+  </script>
+</html>
