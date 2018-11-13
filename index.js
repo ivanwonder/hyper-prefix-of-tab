@@ -76,7 +76,9 @@ exports.middleware = ({ dispatch, getState }) => next => action => {
     case SESSION_SET_XTERM_TITLE:
       cacheXtermTitle[action.uid] = action.title.trim() || defaultTitle;
       if (prefixTitleInfo[action.uid]) {
-        action.title = `${prefixTitleInfo[action.uid]}: ${cacheXtermTitle[action.uid]}`;
+        action.title = `${prefixTitleInfo[action.uid]}: ${
+          cacheXtermTitle[action.uid]
+        }`;
       }
       next(action);
       break;
@@ -87,16 +89,28 @@ exports.middleware = ({ dispatch, getState }) => next => action => {
 };
 
 exports.decorateHyper = (Component, { React }) => {
-  return class ModalWindowComponent extends React.Component {
-    constructor() {
-      super();
+  class PrefixInputComponent extends React.Component {
+    constructor(props) {
+      super(props);
       this.state = {
-        value: ""
+        value: prefixTitleInfo[props.activeSession] || ""
       };
     }
 
-    ModalView() {
-      const modalConfig = this.props[stateName];
+    closeModal() {
+      this.props[PLUGIN_PREFIX_OF_TAG_MODAL_CLOSE]();
+    }
+
+    insertPrefix() {
+      this.closeModal();
+      this.props[INSERTPREFIX](this.state.value, this.props.activeSession);
+    }
+
+    componentDidMount() {
+      this.refs.myInput.focus();
+    }
+
+    render() {
       const buttonStyle = {
         display: "inline-block",
         marginBottom: 0,
@@ -116,6 +130,83 @@ exports.decorateHyper = (Component, { React }) => {
         color: "#000",
         borderColor: "#fc0"
       };
+      return React.createElement("div", null, [
+        React.createElement("div", { key: 1 }, [
+          React.createElement(
+            "span",
+            {
+              key: 0,
+              style: {
+                display: "inline-block",
+                color: "#000",
+                lineHeight: "32px",
+                marginRight: "20px"
+              }
+            },
+            "prefix:"
+          ),
+          React.createElement("input", {
+            key: 1,
+            style: {
+              height: "32px",
+              width: "160px",
+              borderRadius: "4px",
+              padding: "4px 7px",
+              outline: "none",
+              border: "1px solid #d9d9d9",
+              fontSize: "12px",
+              lineHeight: 1.5,
+              color: "rgba(0,0,0,.65)",
+              backgroundColor: "#fff"
+            },
+            ref: "myInput",
+            value: this.state.value,
+            onChange: event => {
+              this.setState({
+                value: event.target.value
+              });
+            }
+          })
+        ]),
+        React.createElement(
+          "div",
+          {
+            key: 2,
+            style: {
+              textAlign: "right",
+              marginTop: "40px"
+            }
+          },
+          [
+            React.createElement(
+              "button",
+              {
+                key: 2,
+                onClick: this.insertPrefix.bind(this),
+                style: Object.assign({}, buttonStyle, {
+                  marginRight: "20px"
+                })
+              },
+              "save"
+            ),
+            React.createElement(
+              "button",
+              {
+                key: 3,
+                onClick: this.closeModal.bind(this),
+                style: buttonStyle
+              },
+              "close"
+            )
+          ]
+        )
+      ]);
+    }
+  }
+
+  return class ModalWindowComponent extends React.Component {
+    ModalView() {
+      const modalConfig = this.props[stateName];
       return React.createElement(
         "div",
         {
@@ -160,87 +251,11 @@ exports.decorateHyper = (Component, { React }) => {
                   }
                 `
                 ),
-                React.createElement("div", { key: 1 }, [
-                  React.createElement(
-                    "span",
-                    {
-                      key: 0,
-                      style: {
-                        display: "inline-block",
-                        color: "#000",
-                        lineHeight: "32px",
-                        marginRight: "20px"
-                      }
-                    },
-                    "prefix:"
-                  ),
-                  React.createElement("input", {
-                    key: 1,
-                    style: {
-                      height: "32px",
-                      width: "160px",
-                      borderRadius: "4px",
-                      padding: "4px 7px",
-                      outline: "none",
-                      border: "1px solid #d9d9d9",
-                      fontSize: "12px",
-                      lineHeight: 1.5,
-                      color: "rgba(0,0,0,.65)",
-                      backgroundColor: "#fff"
-                    },
-                    value: this.state.value,
-                    onChange: event => {
-                      this.setState({
-                        value: event.target.value
-                      });
-                    }
-                  })
-                ]),
-                React.createElement(
-                  "div",
-                  {
-                    key: 2,
-                    style: {
-                      textAlign: "right",
-                      marginTop: "40px"
-                    }
-                  },
-                  [
-                    React.createElement(
-                      "button",
-                      {
-                        key: 2,
-                        onClick: this.insertPrefix.bind(this),
-                        style: Object.assign({}, buttonStyle, {
-                          marginRight: "20px"
-                        })
-                      },
-                      "save"
-                    ),
-                    React.createElement(
-                      "button",
-                      {
-                        key: 3,
-                        onClick: this.closeModal.bind(this),
-                        style: buttonStyle
-                      },
-                      "close"
-                    )
-                  ]
-                )
+                React.createElement(PrefixInputComponent, this.props)
               ]
             )
           )
       );
-    }
-
-    closeModal() {
-      this.props[PLUGIN_PREFIX_OF_TAG_MODAL_CLOSE]();
-    }
-
-    insertPrefix() {
-      this.closeModal();
-      this.props[INSERTPREFIX](this.state.value, this.props.activeSession);
     }
 
     render() {
@@ -282,7 +297,7 @@ exports.mapHyperDispatch = (dispatch, map) => {
   };
 
   const setPrefix = (prefix, activeUid) => {
-    if (prefix) {
+    if (prefix && prefix.trim()) {
       prefixTitleInfo[activeUid] = prefix;
       dispatch({
         type: SESSION_SET_XTERM_TITLE,
