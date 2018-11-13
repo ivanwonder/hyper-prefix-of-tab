@@ -1,11 +1,24 @@
 {
   "name": "hyper-prefix-of-tab",
   "version": "0.0.1",
-  "description": "",
+  "description": "add prefix to the title of current active tab",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivanwonder/hyper-prefix-of-tab.git"
+  },
+  "keywords": [
+    "prefix",
+    "hyper-plugin",
+    "hyper.app",
+    "hyperterm",
+    "hyper-plugin",
+    "plugin",
+    "terminal"
+  ],
   "author": "ivanwonder",
   "license": "ISC"
 }
