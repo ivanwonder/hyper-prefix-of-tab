@@ -330,20 +330,30 @@ exports.mapHeaderState = (state, map) => {
 };
 
 exports.getTabsProps = (parentProps, props) => {
+  let tabs = props.tabs;
   // if there's only one tab we use its title as the window title
   if (props.tabs.length === 1) {
     const prefix = (parentProps[stateName]["prefixTitleInfo"] || {})[
       parentProps.activeSessionsMap[props.tabs[0].uid]
     ];
     if (prefix) {
-      props.tabs[0].title = `${prefix}: ${props.tabs[0].title ||
-        defaultWindowsTitle}`;
+      // copy the tabs to avoid change the origin
+      tabs = [
+        Object.assign({}, tabs[0], {
+          title: `${prefix}: ${props.tabs[0].title || defaultWindowsTitle}`
+        })
+      ];
     }
   }
-  return Object.assign({}, props, {
-    [stateName]: parentProps[stateName],
-    activeSessionsMap: parentProps.activeSessionsMap
-  });
+  return Object.assign(
+    {},
+    props,
+    { tabs },
+    {
+      [stateName]: parentProps[stateName],
+      activeSessionsMap: parentProps.activeSessionsMap
+    }
+  );
 };
 
 exports.getTabProps = ({ uid }, parentProps, props) => {
