@@ -1,4 +1,3 @@
-let app;
 const INSERTPREFIX = "INSERTPREFIX";
 const DELETEPREFIX = "DELETEPREFIX";
 
@@ -10,41 +9,49 @@ const PLUGIN_PREFIX_OF_TAG_SET_PREFIX = "PLUGIN_PREFIX_OF_TAG_SET_PREFIX";
 const PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX = "PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX";
 const stateName = "plugin_prefix_of_tag";
 
-function openWindows() {
-  const parent = app.getLastFocusedWindow();
-  parent.rpc.emit(INSERTPREFIX);
-}
+const { name } = require("./package.json");
+const COMMANDINSERT = `${name}:insert`;
+const COMMANDDELETE = `${name}:delete`;
 
-function clearPrefix() {
-  const parent = app.getLastFocusedWindow();
-  parent.rpc.emit(DELETEPREFIX);
-}
+const newKeymaps = {
+  [COMMANDINSERT]: "ctrl+shift+i",
+  [COMMANDDELETE]: "ctrl+shift+d"
+};
 
-const menuConfig = {
-  label: "prefixOfTab",
-  submenu: [
-    {
-      label: "insert",
-      click() {
-        openWindows();
+exports.decorateConfig = mainConfig => {
+  config = Object.assign({}, newKeymaps, mainConfig[name] || {});
+  return mainConfig;
+};
+
+const menuConfig = () => {
+  return {
+    label: "prefixOfTab",
+    submenu: [
+      {
+        label: "insert",
+        accelerator: config[COMMANDINSERT],
+        click(item, focusedWindow) {
+          if (focusedWindow) {
+            focusedWindow.rpc.emit(INSERTPREFIX);
+          }
+        }
+      },
+      {
+        label: "delete",
+        accelerator: config[COMMANDDELETE],
+        click(item, focusedWindow) {
+          if (focusedWindow) {
+            focusedWindow.rpc.emit(DELETEPREFIX);
+          }
+        }
       }
-    },
-    {
-      label: "delete",
-      click() {
-        clearPrefix();
-      }
-    }
-  ]
+    ]
+  };
 };
 
 exports.decorateMenu = menu => {
-  menu.push(menuConfig);
+  menu.push(menuConfig());
   return menu;
-};
-
-exports.onApp = _app => {
-  app = _app;
 };
 
 exports.middleware = ({ dispatch, getState }) => next => action => {
