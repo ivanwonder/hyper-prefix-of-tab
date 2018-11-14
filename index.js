@@ -1,16 +1,13 @@
-const { BrowserWindow, ipcMain } = require("electron");
-
 let app;
 const INSERTPREFIX = "INSERTPREFIX";
 const DELETEPREFIX = "DELETEPREFIX";
 
-const SESSION_SET_XTERM_TITLE = "SESSION_SET_XTERM_TITLE";
-const prefixTitleInfo = {};
-const cacheXtermTitle = {};
-const defaultTitle = "Shell";
+const defaultWindowsTitle = "Hyper";
 
 const PLUGIN_PREFIX_OF_TAG_SHOW = "PLUGIN_PREFIX_OF_TAG_SHOW";
 const PLUGIN_PREFIX_OF_TAG_MODAL_CLOSE = "PLUGIN_PREFIX_OF_TAG_MODAL_CLOSE";
+const PLUGIN_PREFIX_OF_TAG_SET_PREFIX = "PLUGIN_PREFIX_OF_TAG_SET_PREFIX";
+const PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX = "PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX";
 const stateName = "plugin_prefix_of_tag";
 
 function openWindows() {
@@ -62,24 +59,11 @@ exports.middleware = ({ dispatch, getState }) => next => action => {
 
       window.rpc.on(DELETEPREFIX, () => {
         const activeUid = getState().ui.activeUid;
-        prefixTitleInfo[activeUid] = "";
-        if (cacheXtermTitle[activeUid]) {
-          dispatch({
-            type: SESSION_SET_XTERM_TITLE,
-            title: cacheXtermTitle[activeUid],
-            uid: activeUid
-          });
-        }
+        dispatch({
+          type: PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX,
+          uid: activeUid
+        });
       });
-      next(action);
-      break;
-    case SESSION_SET_XTERM_TITLE:
-      cacheXtermTitle[action.uid] = action.title.trim() || defaultTitle;
-      if (prefixTitleInfo[action.uid]) {
-        action.title = `${prefixTitleInfo[action.uid]}: ${
-          cacheXtermTitle[action.uid]
-        }`;
-      }
       next(action);
       break;
     default:
@@ -93,7 +77,7 @@ exports.decorateHyper = (Component, { React }) => {
     constructor(props) {
       super(props);
       this.state = {
-        value: prefixTitleInfo[props.activeSession] || ""
+        value: ""
       };
     }
 
@@ -210,7 +194,8 @@ exports.decorateHyper = (Component, { React }) => {
       return React.createElement(
         "div",
         {
-          className: "prefix-of-tag-container"
+          className: "prefix-of-tag-container",
+          key: 0
         },
         modalConfig.show &&
           React.createElement(
@@ -251,7 +236,10 @@ exports.decorateHyper = (Component, { React }) => {
                   }
                 `
                 ),
-                React.createElement(PrefixInputComponent, this.props)
+                React.createElement(
+                  PrefixInputComponent,
+                  Object.assign({}, this.props, { key: 1 })
+                )
               ]
             )
           )
@@ -259,7 +247,9 @@ exports.decorateHyper = (Component, { React }) => {
     }
 
     render() {
-      const customChildren = Array.from(this.props.customChildren || []).concat(this.ModalView());
+      const customChildren = Array.from(this.props.customChildren || []).concat(
+        this.ModalView()
+      );
       return React.createElement(
         Component,
         Object.assign({}, this.props, {
@@ -274,18 +264,30 @@ exports.reduceUI = (state, action) => {
   switch (action.type) {
     case PLUGIN_PREFIX_OF_TAG_SHOW:
       state = state.setIn([stateName, "show"], action.show || false);
-      state = state.setIn([stateName, "tip"], action.tip || "");
+      break;
+    case PLUGIN_PREFIX_OF_TAG_SET_PREFIX:
+      state = state.setIn(
+        [stateName, "prefixTitleInfo", action.uid],
+        action.prefix
+      );
+      break;
+    case PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX:
+      state = state.setIn([stateName, "prefixTitleInfo", action.uid], "");
       break;
   }
   return state;
 };
 
+function getDefaultPluginState() {
+  return {
+    show: false,
+    prefixTitleInfo: {}
+  };
+}
+
 exports.mapHyperState = (state, map) => {
   return Object.assign({}, map, {
-    [stateName]: state["ui"][stateName] || {
-      show: false,
-      tip: ""
-    }
+    [stateName]: state["ui"][stateName] || getDefaultPluginState()
   });
 };
 
@@ -299,10 +301,9 @@ exports.mapHyperDispatch = (dispatch, map) => {
 
   const setPrefix = (prefix, activeUid) => {
     if (prefix && prefix.trim()) {
-      prefixTitleInfo[activeUid] = prefix;
       dispatch({
-        type: SESSION_SET_XTERM_TITLE,
-        title: cacheXtermTitle[activeUid] || defaultTitle,
+        type: PLUGIN_PREFIX_OF_TAG_SET_PREFIX,
+        prefix: prefix.trim(),
         uid: activeUid
       });
     }
@@ -312,4 +313,41 @@ exports.mapHyperDispatch = (dispatch, map) => {
     [PLUGIN_PREFIX_OF_TAG_MODAL_CLOSE]: modalClose,
     [INSERTPREFIX]: setPrefix
   });
+};
+
+exports.mapHeaderState = (state, map) => {
+  return Object.assign({}, map, {
+    [stateName]: state["ui"][stateName] || getDefaultPluginState(),
+    activeSessionsMap: state.termGroups.activeSessions
+  });
+};
+
+exports.getTabsProps = (parentProps, props) => {
+  // if there's only one tab we use its title as the window title
+  if (props.tabs.length === 1) {
+    const prefix = (parentProps[stateName]["prefixTitleInfo"] || {})[
+      parentProps.activeSessionsMap[props.tabs[0].uid]
+    ];
+    if (prefix) {
+      props.tabs[0].title = `${prefix}: ${props.tabs[0].title ||
+        defaultWindowsTitle}`;
+    }
+  }
+  return Object.assign({}, props, {
+    [stateName]: parentProps[stateName],
+    activeSessionsMap: parentProps.activeSessionsMap
+  });
+};
+
+exports.getTabProps = ({ uid }, parentProps, props) => {
+  const prefix = (parentProps[stateName]["prefixTitleInfo"] || {})[
+    parentProps.activeSessionsMap[uid]
+  ];
+  if (prefix) {
+    return Object.assign({}, props, {
+      text: `${prefix}: ${props.text}`
+    });
+  } else {
+    return props;
+  }
 };
