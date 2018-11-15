@@ -121,77 +121,90 @@ exports.decorateHyper = (Component, { React }) => {
         color: "#000",
         borderColor: "#fc0"
       };
-      return React.createElement("div", null, [
-        React.createElement("div", { key: 1 }, [
-          React.createElement(
-            "span",
-            {
-              key: 0,
+      return React.createElement(
+        "div",
+        {
+          onKeyDown: e => {
+            if (e.keyCode === 13) {
+              this.insertPrefix();
+            }
+            if (e.keyCode === 27) {
+              this.closeModal();
+            }
+          }
+        },
+        [
+          React.createElement("div", { key: 1 }, [
+            React.createElement(
+              "span",
+              {
+                key: 0,
+                style: {
+                  display: "inline-block",
+                  color: "#000",
+                  lineHeight: "32px",
+                  marginRight: "20px"
+                }
+              },
+              "prefix:"
+            ),
+            React.createElement("input", {
+              key: 1,
               style: {
-                display: "inline-block",
-                color: "#000",
-                lineHeight: "32px",
-                marginRight: "20px"
+                height: "32px",
+                width: "160px",
+                borderRadius: "4px",
+                padding: "4px 7px",
+                outline: "none",
+                border: "1px solid #d9d9d9",
+                fontSize: "12px",
+                lineHeight: 1.5,
+                color: "rgba(0,0,0,.65)",
+                backgroundColor: "#fff"
+              },
+              ref: "myInput",
+              value: this.state.value,
+              onChange: event => {
+                this.setState({
+                  value: event.target.value
+                });
+              }
+            })
+          ]),
+          React.createElement(
+            "div",
+            {
+              key: 2,
+              style: {
+                textAlign: "right",
+                marginTop: "40px"
               }
             },
-            "prefix:"
-          ),
-          React.createElement("input", {
-            key: 1,
-            style: {
-              height: "32px",
-              width: "160px",
-              borderRadius: "4px",
-              padding: "4px 7px",
-              outline: "none",
-              border: "1px solid #d9d9d9",
-              fontSize: "12px",
-              lineHeight: 1.5,
-              color: "rgba(0,0,0,.65)",
-              backgroundColor: "#fff"
-            },
-            ref: "myInput",
-            value: this.state.value,
-            onChange: event => {
-              this.setState({
-                value: event.target.value
-              });
-            }
-          })
-        ]),
-        React.createElement(
-          "div",
-          {
-            key: 2,
-            style: {
-              textAlign: "right",
-              marginTop: "40px"
-            }
-          },
-          [
-            React.createElement(
-              "button",
-              {
-                key: 2,
-                onClick: this.insertPrefix.bind(this),
-                style: Object.assign({}, buttonStyle, {
-                  marginRight: "20px"
-                })
-              },
-              "save"
-            ),
-            React.createElement(
-              "button",
-              {
-                key: 3,
-                onClick: this.closeModal.bind(this),
-                style: buttonStyle
-              },
-              "close"
-            )
-          ]
-        )
-      ]);
+            [
+              React.createElement(
+                "button",
+                {
+                  key: 2,
+                  onClick: this.insertPrefix.bind(this),
+                  style: Object.assign({}, buttonStyle, {
+                    marginRight: "20px"
+                  })
+                },
+                "save"
+              ),
+              React.createElement(
+                "button",
+                {
+                  key: 3,
+                  onClick: this.closeModal.bind(this),
+                  style: buttonStyle
+                },
+                "close"
+              )
+            ]
+          )
+        ]
+      );
     }
   }
 
