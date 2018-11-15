@@ -14,8 +14,8 @@ const COMMANDINSERT = `${name}:insert`;
 const COMMANDDELETE = `${name}:delete`;
 
 const newKeymaps = {
-  [COMMANDINSERT]: "ctrl+shift+i",
-  [COMMANDDELETE]: "ctrl+shift+d"
+  [COMMANDINSERT]: "ctrl+alt+i",
+  [COMMANDDELETE]: "ctrl+alt+d"
 };
 
 exports.decorateConfig = mainConfig => {
@@ -79,6 +79,26 @@ exports.middleware = ({ dispatch, getState }) => next => action => {
   }
 };
 
+// add state.ui.plugin_prefix_of_tag.
+exports.reduceUI = (state, action) => {
+  switch (action.type) {
+    case PLUGIN_PREFIX_OF_TAG_SHOW:
+      state = state.setIn([stateName, "show"], action.show || false);
+      break;
+    case PLUGIN_PREFIX_OF_TAG_SET_PREFIX:
+      state = state.setIn(
+        [stateName, "prefixTitleInfo", action.uid],
+        action.prefix
+      );
+      break;
+    case PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX:
+      state = state.setIn([stateName, "prefixTitleInfo", action.uid], "");
+      break;
+  }
+  return state;
+};
+
+// add popup window under Hyper Component. control it by state.ui.plugin_prefix_of_tag which has been added above.
 exports.decorateHyper = (Component, { React }) => {
   class PrefixInputComponent extends React.Component {
     constructor(props) {
@@ -280,24 +300,6 @@ exports.decorateHyper = (Component, { React }) => {
   };
 };
 
-exports.reduceUI = (state, action) => {
-  switch (action.type) {
-    case PLUGIN_PREFIX_OF_TAG_SHOW:
-      state = state.setIn([stateName, "show"], action.show || false);
-      break;
-    case PLUGIN_PREFIX_OF_TAG_SET_PREFIX:
-      state = state.setIn(
-        [stateName, "prefixTitleInfo", action.uid],
-        action.prefix
-      );
-      break;
-    case PLUGIN_PREFIX_OF_TAG_DELETE_PREFIX:
-      state = state.setIn([stateName, "prefixTitleInfo", action.uid], "");
-      break;
-  }
-  return state;
-};
-
 function getDefaultPluginState() {
   return {
     show: false,
@@ -335,6 +337,7 @@ exports.mapHyperDispatch = (dispatch, map) => {
   });
 };
 
+// add prefix into the title by using the state.ui.plugin_prefix_of_tag which has been added above.
 exports.mapHeaderState = (state, map) => {
   return Object.assign({}, map, {
     [stateName]: state["ui"][stateName] || getDefaultPluginState(),
@@ -381,3 +384,50 @@ exports.getTabProps = ({ uid }, parentProps, props) => {
     return props;
   }
 };
+
+// after close the popup window, we should focus back to xterm.js
+exports.mapTermsState = (state, map) => {
+  return Object.assign({}, map, {
+    [stateName]: state["ui"][stateName] || getDefaultPluginState()
+  });
+};
+
+exports.getTermGroupProps = (uid, parentProps, props) => {
+  return Object.assign({}, props, {
+    [stateName]: parentProps[stateName] || getDefaultPluginState()
+  });
+}
+
+exports.getTermProps = (uid, parentProps, props) => {
+  return Object.assign({}, props, {
+    [stateName]: parentProps[stateName] || getDefaultPluginState()
+  });
+}
+
+exports.decorateTerm = (Term, { React }) => {
+  return class extends React.Component {
+    constructor(props) {
+      super(props);
+      this.term = null;
+      this.onDecorated = this.onDecorated.bind(this);
+    }
+    onDecorated (term) {
+      this.term = term;
+      if (this.props.onDecorated) {
+        this.props.onDecorated(term);
+      }
+    }
+
+    render () {
+      if (this.term && !this.term.term.isFocused && this.props.isTermActive && !this.props[stateName].show) {
+        // prevent the 'Enter' event from breakthroughing into the xterms.js.
+        setTimeout(() => {
+          this.term.term.focus();
+        });
+      }
+      return React.createElement(Term, Object.assign({}, this.props, {
+        onDecorated: this.onDecorated
+      }));
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "hyper-prefix-of-tab",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "add prefix to the title of current active tab",
   "main": "index.js",
   "scripts": {
