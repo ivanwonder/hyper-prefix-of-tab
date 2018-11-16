@@ -10,8 +10,8 @@ module.exports = {
   config: {
     // other configs...
     'hyper-prefix-of-tab': {
-      "hyper-prefix-of-tab:insert": "ctrl+shift+i",
-      "hyper-prefix-of-tab:delete": "ctrl+shift+d"
+      "hyper-prefix-of-tab:insert": "ctrl+alt+i",
+      "hyper-prefix-of-tab:delete": "ctrl+alt+d"
     },
   }
   //...
